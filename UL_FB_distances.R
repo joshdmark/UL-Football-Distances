@@ -11,6 +11,8 @@ stadium_coordinates <- read.csv(text = stadium_coordinates_url, stringsAsFactors
 rm(stadium_coordinates_url) ## remove url 
 ## fix column name
 names(stadium_coordinates)[1] <- 'venue_id'
+## make sure all stadium zips have 5 characters
+stadium_coordinates$stadium_zip <- stringr::str_pad(string = stadium_coordinates$stadium_zip, side = 'left', width = 5, pad = '0')
 
 ## get team_ids
 team_ids_url <- getURL('https://raw.githubusercontent.com/joshdmark/UL-Football-Distances/main/team_ids.csv')
@@ -83,13 +85,19 @@ UL_coordinates <- stadium_coordinates %>%
   filter(home_team == 'Louisville') %>% 
   select(stadium_lat, stadium_lon)
 
+## Cardinal Stadium Zip
+UL_zip <- stadium_coordinates %>% 
+  filter(home_team == 'Louisville') %>% 
+  select(stadium_zip)
+
 ## add stadium coordinates to full_schedule 
-full_schedule <- sqldf("select fs.*, sc.stadium_lat, sc.stadium_lon 
+full_schedule <- sqldf("select fs.*, sc.stadium_lat, sc.stadium_lon, sc.stadium_zip
              from full_schedule fs 
              join stadium_coordinates sc on fs.venue_id = sc.venue_id") %>% 
   data.frame() %>% 
   mutate(UL_lat = UL_coordinates$stadium_lat, 
-         UL_lon = UL_coordinates$stadium_lon)
+         UL_lon = UL_coordinates$stadium_lon, 
+         UL_zip = UL_zip$stadium_zip)
 
 ## remove for space
 rm(UL_coordinates)
@@ -122,14 +130,6 @@ for (i in 1:nrow(full_schedule)){
 full_schedule <- distances 
 rm(distances)
 
-
-full_schedule <- full_schedule %>% 
-  mutate(opponent = stringr::str_trim(opponent))
-## add team IDs to full_schedule
-tmp <- sqldf("select fs.*, ti.team_id as opponent_id
-             from full_schedule fs 
-             join team_ids ti on fs.opponent = ti.team_name")
-
 ## BYE WEEKS
 # 2014: 9, 12
 # 2015: 6, 14
@@ -148,4 +148,39 @@ bye_weeks_df <- data.frame(
 full_schedule <- bind_rows(full_schedule, bye_weeks_df) %>% 
   arrange(season, week)
 
+## add MOV, game_dt 
+full_schedule <- full_schedule %>% 
+  mutate(MOV = team_points - opp_points, 
+         game_dt = lubridate::ymd(stringr::str_sub(start_date, 1, 10)))
+
+## seasons since joining ACC
+seasons <- 2014:2020
+all_stats <- data.frame() 
+## get stats for each season 
+for(s in seasons){
+  print(s)
+  ## get one season stats 
+  team_stats <- cfb_game_team_stats(year = s, team = 'Louisville') %>% data.frame()
+  ## remove 'allowed' columns 
+  team_stats <- team_stats[, !grepl(pattern = 'allowed', x = names(team_stats))]
+  ## add season stats to all_stats
+  all_stats <- bind_rows(all_stats, team_stats)
+}
+
+## clean all_stats
+all_stats <- all_stats %>% 
+  mutate(down3_eff = third_down_eff, 
+         down4_eff = fourth_down_eff,
+         penalties_yards_total = total_penalties_yards) %>% 
+  separate(third_down_eff, into = c('down3_attempts', 'down3_success'), sep = '-') %>% 
+  separate(fourth_down_eff, into = c('down4_attempts', 'down4_success'), sep = '-') %>% 
+  separate(total_penalties_yards, into = c('penalties', 'penalty_yardage'), sep = '-')
+
+## add stats to full_schedule
+full_schedule <- sqldf("select fs.*, a.*
+              from full_schedule fs 
+              left join all_stats a on fs.id = a.game_id")
+
 fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
+
+## PPG, PPG allowed, yards, 3rd down conv, 4th down conv, penalties/gm, penalties yards/gm 
