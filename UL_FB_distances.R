@@ -172,8 +172,8 @@ all_stats <- all_stats %>%
   mutate(down3_eff = third_down_eff, 
          down4_eff = fourth_down_eff,
          penalties_yards_total = total_penalties_yards) %>% 
-  separate(third_down_eff, into = c('down3_attempts', 'down3_success'), sep = '-') %>% 
-  separate(fourth_down_eff, into = c('down4_attempts', 'down4_success'), sep = '-') %>% 
+  separate(third_down_eff, into = c('down3_success', 'down3_attempts'), sep = '-') %>% 
+  separate(fourth_down_eff, into = c('down4_success', 'down4_attempts'), sep = '-') %>% 
   separate(total_penalties_yards, into = c('penalties', 'penalty_yardage'), sep = '-')
 
 ## add stats to full_schedule
