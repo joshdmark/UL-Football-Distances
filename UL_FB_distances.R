@@ -181,6 +181,35 @@ full_schedule <- sqldf("select fs.*, a.*
               from full_schedule fs 
               left join all_stats a on fs.id = a.game_id")
 
-fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
+## gambling info for teamrankings games 
+gambling_info1 <- betting_lines %>% 
+  filter(provider == 'teamrankings') %>% 
+  filter(!as.character(game_id) %in% c('400547780', '400756934', '400937484', '401112442'))
 
-## PPG, PPG allowed, yards, 3rd down conv, 4th down conv, penalties/gm, penalties yards/gm 
+## get gambling info for games that teamrankings does not have 
+gambling_info2 <- betting_lines %>% 
+  filter(provider == 'consensus') %>% 
+  filter(as.character(game_id) %in% c('400547780', '400756934', '400937484', '401112442'))
+
+## manually add missing data for Indiana State game
+## ISU 401013101
+ISU_game <- data.frame(game_id = 401013101, 
+                       formatted_gambling_line = 'Louisville -42', 
+                       over_under = '68.5', 
+                       total_points = 38, 
+                       hit_ou_ind = 0, 
+                       negative_mov = -24, 
+                       team_gambling_line = -42, 
+                       cover_ind = 0)
+
+## combine all gambling info 
+gambling_info <- bind_rows(gambling_info1, gambling_info2, ISU_game)
+
+## add gambling info to full schedule 
+full_schedule <- sqldf("select fs.*, 
+                          g.formatted_gambling_line, g.over_under, g.total_points, g.hit_ou_ind, g.negative_mov, g.team_gambling_line, g.cover_ind
+                          from full_schedule fs 
+                          left join gambling_info g on fs.id = g.game_id")
+
+## write final file for tableau 
+fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
