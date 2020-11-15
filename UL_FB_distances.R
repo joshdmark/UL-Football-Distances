@@ -189,7 +189,7 @@ gambling_info1 <- betting_lines %>%
 ## get gambling info for games that teamrankings does not have 
 gambling_info2 <- betting_lines %>% 
   filter(provider == 'consensus') %>% 
-  filter(as.character(game_id) %in% c('400547780', '400756934', '400937484', '401112442'))
+  filter(as.character(game_id) %in% c('400547780', '400756934', '400937484', '401112442', '401257934'))
 
 ## manually add missing data for Indiana State game
 ## ISU 401013101
@@ -210,6 +210,12 @@ full_schedule <- sqldf("select fs.*,
                           g.formatted_gambling_line, g.over_under, g.total_points, g.hit_ou_ind, g.negative_mov, g.team_gambling_line, g.cover_ind
                           from full_schedule fs 
                           left join gambling_info g on fs.id = g.game_id")
+
+## remove bad UVA game
+full_schedule <- full_schedule %>% 
+  mutate(remove_game_ind = ifelse(season == 2020 & week == 11 & is.na(id), 1, 0)) %>% 
+  filter(remove_game_ind != 1) %>% 
+  select(-remove_game_ind)
 
 ## write final file for tableau 
 fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
