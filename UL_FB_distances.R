@@ -214,8 +214,15 @@ full_schedule <- sqldf("select fs.*,
 ## remove bad UVA game
 full_schedule <- full_schedule %>% 
   mutate(remove_game_ind = ifelse(season == 2020 & week == 11 & is.na(id), 1, 0)) %>% 
-  filter(remove_game_ind != 1) %>% 
+  filter(remove_game_ind != 1) %>%
   select(-remove_game_ind)
+
+## change BC game to week 14
+full_schedule <- full_schedule %>% 
+  data.table() %>% 
+  .[season == 2020 & opponent == 'Boston College' & substr(start_date, start = 1, stop = 10) == '2020-12-12', 
+    week := 14] %>% 
+  data.frame()
 
 ## write final file for tableau 
 fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
