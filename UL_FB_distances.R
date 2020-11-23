@@ -201,7 +201,7 @@ ISU_game <- data.frame(game_id = 401013101,
                        negative_mov = -24, 
                        team_gambling_line = -42, 
                        cover_ind = 0)
-
+ 
 ## combine all gambling info 
 gambling_info <- bind_rows(gambling_info1, gambling_info2, ISU_game)
 
