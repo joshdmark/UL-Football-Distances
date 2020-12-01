@@ -179,7 +179,7 @@ all_stats <- all_stats %>%
 ## add stats to full_schedule
 full_schedule <- sqldf("select fs.*, a.*
               from full_schedule fs 
-              left join all_stats a on fs.id = a.game_id")
+              left join all_stats a on fs.game_id = a.game_id")
 
 ## gambling info for teamrankings games 
 gambling_info1 <- betting_lines %>% 
@@ -201,15 +201,20 @@ ISU_game <- data.frame(game_id = 401013101,
                        negative_mov = -24, 
                        team_gambling_line = -42, 
                        cover_ind = 0)
- 
+
 ## combine all gambling info 
 gambling_info <- bind_rows(gambling_info1, gambling_info2, ISU_game)
 
+## fix column name
+names(full_schedule)[1] <- 'id'
+
 ## add gambling info to full schedule 
-full_schedule <- sqldf("select fs.*, 
-                          g.formatted_gambling_line, g.over_under, g.total_points, g.hit_ou_ind, g.negative_mov, g.team_gambling_line, g.cover_ind
+full_schedule <- sqldf("select fs.*,
+                          g.formatted_gambling_line, g.over_under,
+                          g.total_points, g.hit_ou_ind, g.negative_mov, 
+                          g.team_gambling_line, g.cover_ind
                           from full_schedule fs 
-                          left join gambling_info g on fs.id = g.game_id")
+                          left join gambling_info g on fs.game_id = g.game_id")
 
 ## remove bad UVA game
 full_schedule <- full_schedule %>% 
@@ -220,9 +225,12 @@ full_schedule <- full_schedule %>%
 ## change BC game to week 14
 full_schedule <- full_schedule %>% 
   data.table() %>% 
-  .[season == 2020 & opponent == 'Boston College' & substr(start_date, start = 1, stop = 10) == '2020-12-12', 
+  .[season == 2020 & 
+      opponent == 'Boston College' & 
+      substr(start_date, start = 1, stop = 10) == '2020-12-12', 
     week := 14] %>% 
   data.frame()
 
 ## write final file for tableau 
-fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
+fwrite(full_schedule, "Documents/Sports/UL Football/UL_football_distances.csv")
+# fwrite(full_schedule, "C:/Users/joshua.mark/OneDrive - Accenture/Desktop/Sports/UL Football/UL_football_distances.csv")
