@@ -229,6 +229,10 @@ full_schedule <- full_schedule %>%
       opponent == 'Boston College' & 
       substr(start_date, start = 1, stop = 10) == '2020-12-12', 
     week := 14] %>% 
+  .[season == 2020 & 
+      opponent == 'Wake Forest' & 
+      substr(start_date, start = 1, stop = 10) == '2020-12-19', 
+    week := 14] %>% 
   data.frame()
 
 ## write final file for tableau 
